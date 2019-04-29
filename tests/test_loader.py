@@ -1,3 +1,8 @@
+import pathlib
+import subprocess
+import sys
+
+from azure.functions_worker import protos
 from azure.functions_worker import testutils
 
 
@@ -26,3 +31,31 @@ class TestLoader(testutils.WebHostTestCase):
         r = self.webhost.request('GET', 'relimport')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.text, '__app__.relimport.relative')
+
+
+class TestPluginLoader(testutils.AsyncTestCase):
+
+    async def test_entry_point_plugin(self):
+        test_binding = pathlib.Path(__file__).parent / 'test-binding'
+        subprocess.run([
+            sys.executable, '-m', 'pip',
+            '--disable-pip-version-check',
+            'install', '--quiet',
+            '-e', test_binding
+        ], check=True)
+
+        try:
+
+            async with testutils.start_mockhost(
+                    script_root='test-binding/functions') as host:
+                func_id, r = await host.load_function('foo')
+
+            self.assertEqual(r.response.function_id, func_id)
+            self.assertEqual(r.response.result.status,
+                             protos.StatusResult.Success)
+        finally:
+            subprocess.run([
+                sys.executable, '-m', 'pip',
+                '--disable-pip-version-check',
+                'uninstall', '-y', '--quiet', 'foo-binding'
+            ], check=True)

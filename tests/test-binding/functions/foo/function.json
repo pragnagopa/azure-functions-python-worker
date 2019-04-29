@@ -1,0 +1,12 @@
+{
+  "scriptFile": "main.py",
+  "disabled": false,
+
+  "bindings": [
+    {
+      "type": "foo",
+      "direction": "in",
+      "name": "req"
+    }
+  ]
+}
